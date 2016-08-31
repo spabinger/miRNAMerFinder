@@ -1,10 +1,10 @@
 import sys
 import os
+from collections import defaultdict
 
 
 
-
-def build_combination_dict(mirna, global_dict, mer_len=6, min_distance=2, max_distance=8):
+def build_combination_dict(mirna, global_dict, mer_len, min_distance, max_distance):
 
     ## For all distances (min to max)
     for distance in range(min_distance - 1, max_distance):
@@ -13,16 +13,15 @@ def build_combination_dict(mirna, global_dict, mer_len=6, min_distance=2, max_di
         for pos in range(0, len(mirna)):
 
             ## First part
-            first_part = mirna[pos : pos+mer_len]
+            first_part = mirna[pos:pos + mer_len]
 
             ## Second part
-            second_part = mirna[pos+distance+mer_len : pos+distance+mer_len+mer_len]
+            second_part = mirna[pos + mer_len + distance:pos + mer_len + distance + mer_len]
 
-            ## Mer combination
+            ## Mer combination - check if kmer has correct size
             if len(first_part) == mer_len and len(second_part) == mer_len:
 
                 mer_combi = first_part + "-" + str(distance) + "-" + second_part
-
 
                 ## Add to global dict
                 if mer_combi not in global_dict:        ## Check if it's present
@@ -38,7 +37,7 @@ def build_combination_dict(mirna, global_dict, mer_len=6, min_distance=2, max_di
 
 def print_combinations_for_mirnas(mirnas, global_dict, output_file):
 
-    mirna_combi_dict = dict()
+    mirna_combi_dict = defaultdict(list)
 
     for key in global_dict.keys():
 
@@ -49,9 +48,6 @@ def print_combinations_for_mirnas(mirnas, global_dict, output_file):
 
             #print "mirna: " + str(mirna)
             #print "combi: " + str(combi)
-
-            if mirna not in mirna_combi_dict:
-                mirna_combi_dict[mirna] = list()
 
             mirna_combi_dict[mirna].append(combi)
 
@@ -65,7 +61,7 @@ def print_combinations_for_mirnas(mirnas, global_dict, output_file):
             of.write("\n")
             if mirna in mirna_combi_dict:
                 of.write(str(len(mirna_combi_dict[mirna])) + "\n")
-                of.write(str(mirna_combi_dict[mirna]) + "\n")
+                of.write(", ".join(mirna_combi_dict[mirna]) + "\n")
             else:
                 no_kmer_found_count += 1
                 of.write("No kmer found\n")
@@ -75,12 +71,14 @@ def print_combinations_for_mirnas(mirnas, global_dict, output_file):
 
 
 
-def run_program(mirnas, output_file):
+def run_program(mirnas, output_file, kmer_length_int, min_distance_int, max_distance_int):
+    
+    ## Dictionary of all combinations
     global_dict = dict()
 
     ## Build the combinations
     for mirna in mirnas:
-        global_dict = build_combination_dict(mirna, global_dict)
+        global_dict = build_combination_dict(mirna, global_dict, kmer_length_int, min_distance_int, max_distance_int)
 
 
     ## DEBUG
@@ -99,11 +97,11 @@ def test(output_file):
     mirnas += ["GGTATCGATAAAGCCTCGCATAGACTCGCCTCGAAAGAAGACTCTC"]
     mirnas += ["TTCCGATAGCGCCTCAGAATCGCGCCTTTTAAGAAGCT"]
     
-    run_program(mirnas, output_file)
+    run_program(mirnas, output_file, 8, 2, 4)
 
 
 
-def main(input_file, output_file):
+def main(input_file, output_file, kmer_length_int, min_distance_int, max_distance_int):
 
     ## List of mirnas parsed from input file
     mirnas = list()
@@ -120,7 +118,7 @@ def main(input_file, output_file):
 
 
     ## Run the program
-    run_program(mirnas, output_file)
+    run_program(mirnas, output_file, kmer_length_int, min_distance_int, max_distance_int)
 
 
 
@@ -136,13 +134,16 @@ if __name__ == '__main__':
     print "####################"
     
     
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 6:
         print "Please run MiRNAMerFinder with:"
-        print "MiRNAMerFinder <input_file> <output_file>"
+        print "python miRNAMerFinder.py <input_file> <output_file> <kmer length> <min distance> <max distance>"
         sys.exit(1)
         
     input_fasta_file = sys.argv[1]
     output_file = sys.argv[2]
+    kmer_length = sys.argv[3]
+    min_distance = sys.argv[4]
+    max_distance = sys.argv[5]
     
     if input_fasta_file == "__test__":
         print "Running a test"
@@ -155,10 +156,26 @@ if __name__ == '__main__':
         sys.exit(1)
         
         
+    try:
+        kmer_length_int = int(kmer_length)
+    except:
+        print "Please provide a valid kmer length.\n"
+        sys.exit(1)
+    
+    try:
+        min_distance_int = int(min_distance)
+    except:
+        print "Please provide a valid min distance.\n"
+        sys.exit(1)
+        
+    try:
+        max_distance_int = int(max_distance)
+    except:
+        print "Please provide a valid max distance.\n"
+        sys.exit(1)
     
     
-    
-    main(input_fasta_file, output_file)
+    main(input_fasta_file, output_file, kmer_length_int, min_distance_int, max_distance_int)
 
 
     print "\n####################"
